@@ -46,7 +46,7 @@ services:
       - web
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.postgrest.rule=Host(`api.${DOMAIN}`)"
+      - "traefik.http.routers.postgrest.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.postgrest.entrypoints=websecure"
       - "traefik.http.routers.postgrest.tls.certresolver=letsencrypt"
       - "traefik.http.services.postgrest.loadbalancer.server.port=8080"
