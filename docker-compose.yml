@@ -28,10 +28,6 @@ services:
       - redis_data:/data
     networks:
       - web
-    deploy:
-      resources:
-        limits:
-          memory: ${REDIS_MEMORY_LIMIT}
 
   postgrest-cache:
     build: .
