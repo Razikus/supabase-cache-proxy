@@ -21,6 +21,67 @@ A high-performance caching reverse proxy for Supabase's PostgREST API, using Red
 - **Flexibility**: Cache specific tables or all tables based on your needs
 - **Scalability**: Built-in support for multiple replicas and load balancing
 
+## Technical Overview
+
+### How It Works
+
+The service acts as a caching reverse proxy between your clients and Supabase's PostgREST API. Here's how it processes requests:
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant P as PostgREST Cache
+    participant R as Redis
+    participant S as Supabase PostgREST
+
+    Note over P: Generate cache key from:<br/>1. Request path<br/>2. Query params<br/>3. Auth headers<br/>4. API key
+    
+    C->>P: GET /rest/v1/table
+    
+    P->>R: Check cache
+    
+    alt Cache Hit
+        R-->>P: Return cached response
+        P-->>C: Return cached data
+    else Cache Miss
+        R-->>P: Cache miss
+        P->>S: Forward request
+        S-->>P: Response
+        P->>R: Store in cache
+        P-->>C: Return response
+    end
+```
+
+### Cache Key Generation
+
+The cache key is generated using the following components:
+1. Request path (e.g., `/rest/v1/users`)
+2. Query parameters (sorted alphabetically)
+3. Authorization headers
+4. API key
+5. Content-Type and Accept headers
+
+Example of how a cache key is constructed:
+
+```go
+// Internal cache key format
+path|param1=value1|param2=value2|Authorization=Bearer...|ApiKey=your-key
+
+// Final key is SHA-256 hashed with 'postgrest:' prefix
+postgrest:hash_of_above_string
+```
+
+### Caching Rules
+
+1. **Request Types**: Only GET requests are cached
+2. **Path Filtering**: Only requests starting with `/rest/v1/` are considered for caching
+3. **Table Selection**: Only configured tables are cached (controlled by CACHE_TABLES env var)
+4. **Cache Duration**: Configurable via CACHE_TTL_MINUTES (default: 5 minutes)
+5. **Response Storage**: Full response is cached including:
+    - Response body
+    - Status code
+    - Headers
+
 ## Roadmap
 
 Future improvements planned for this project include:
