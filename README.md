@@ -4,6 +4,12 @@ A high-performance caching reverse proxy for Supabase's PostgREST API, using Red
 
 > **Note**: This is currently an MVP (Minimum Viable Product). While fully functional, some advanced features are planned for future releases.
 
+## Buy me a coffee
+
+Hey folks, I'm doing this stuff for free, consider buying me a coffee if you want updates!
+
+https://buymeacoffee.com/razikus
+
 ## Features
 
 - 🚀 Redis-based caching for PostgREST responses
