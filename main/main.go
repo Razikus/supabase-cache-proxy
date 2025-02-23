@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"github.com/Razikus/postgrest-cache-redis/postgrestcache"
 	"github.com/redis/go-redis/v9"
-	"log"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"os"
 	"strconv"
@@ -35,6 +35,7 @@ func parseTTL(ttlMinutes string) time.Duration {
 }
 
 func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	cacheUrl := getEnvOrDefault("SUPA_URL", "http://localhost:3000")
 	port := getEnvOrDefault("PORT", "8080")
 
@@ -56,14 +57,16 @@ func main() {
 	proxy := postgrestcache.NewCacher(cacheUrl, redisClient, toCache, cacheTTL)
 	registered := proxy.RegisterHandler()
 
-	fmt.Println("STARTING REVERSE CACHER:")
-	fmt.Println("URL:", cacheUrl)
-	fmt.Println("REDIS:", redisAddr)
-	fmt.Println("TTL:", cacheTTL)
-	fmt.Println("TABLES:", toCache)
-	fmt.Println("PORT:", port)
+	log.Info().Str("LIFECYCLE", "STARTING REVERSE CACHER").Send()
+	log.Info().Str("URL", cacheUrl).Send()
+	log.Info().Str("REDIS", redisAddr).Send()
+	log.Info().Dur("TTL", cacheTTL).Send()
+	log.Info().Strs("TABLES", toCache).Send()
+	log.Info().Str("PORT", port).Send()
 
-	log.Printf("Starting server on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, registered))
-
+	log.Info().Msgf("Starting server on :%s", port)
+	if err := http.ListenAndServe(":"+port, registered); err != nil {
+		log.Error().Err(err).Msg("server failed to start")
+		os.Exit(1)
+	}
 }

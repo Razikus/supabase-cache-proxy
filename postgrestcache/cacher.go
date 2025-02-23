@@ -2,8 +2,8 @@ package postgrestcache
 
 import (
 	"context"
-	"fmt"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -61,6 +61,7 @@ func (c *Cacher) shouldCache(what string) bool {
 func (c *Cacher) RegisterHandler() *http.ServeMux {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Info().Str("Req", r.URL.Path).Str("Method", r.Method).Str("UserAgent", r.UserAgent()).Send()
 		if len(c.TablesToCache) > 0 {
 			if strings.HasPrefix(r.URL.Path, "/rest/v1/") {
 				if r.Method == http.MethodGet {
@@ -69,7 +70,7 @@ func (c *Cacher) RegisterHandler() *http.ServeMux {
 
 						what, savedbytes, err := c.RedisCacherro.Get(ctx, r.URL.Path, r.Header, r.URL.Query())
 						if what != nil && err == nil {
-							fmt.Println("Saved", savedbytes, "bytes", r.URL.Path)
+							log.Info().Int("Saved", savedbytes).Str("CacheHit", r.URL.Path).Send()
 							what.WriteTo(w)
 							return
 						}
@@ -79,8 +80,10 @@ func (c *Cacher) RegisterHandler() *http.ServeMux {
 
 						serialized := cachedWriter.ToCachedResponse()
 						err = c.RedisCacherro.Set(ctx, r.URL.Path, r.Header, r.URL.Query(), serialized)
-						if err != nil {
-							fmt.Println("CACHED", r.URL.Path)
+						if err == nil {
+							log.Info().Str("CacheSave", r.URL.Path).Send()
+						} else {
+							log.Error().Err(err).Str("CacheSave", r.URL.Path).Send()
 						}
 
 						return
@@ -92,7 +95,6 @@ func (c *Cacher) RegisterHandler() *http.ServeMux {
 
 			}
 		}
-		fmt.Println(r.URL)
 		c.ReverseProxy.ServeHTTP(w, r)
 		return
 	})
