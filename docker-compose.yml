@@ -8,7 +8,7 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.letsencrypt.acme.email=your@email.com"
+      - "--certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
@@ -31,27 +31,22 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: ${REDIS_MEMORY_LIMIT}
 
   postgrest-cache:
     build: .
     deploy:
-      replicas: 3
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
+      replicas: ${APP_REPLICAS}
     environment:
-      - SUPA_URL=https://your-project.supabase.co
-      - REDIS_ADDR=redis:6379
-      - CACHE_TTL_MINUTES=5
-      - CACHE_TABLES=products,categories
+      - SUPA_URL=${SUPA_URL}
+      - REDIS_ADDR=${REDIS_ADDR}
+      - CACHE_TTL_MINUTES=${CACHE_TTL_MINUTES}
+      - CACHE_TABLES=${CACHE_TABLES}
     networks:
       - web
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.postgrest.rule=Host(`api.yourdomain.com`)"
+      - "traefik.http.routers.postgrest.rule=Host(`api.${DOMAIN}`)"
       - "traefik.http.routers.postgrest.entrypoints=websecure"
       - "traefik.http.routers.postgrest.tls.certresolver=letsencrypt"
       - "traefik.http.services.postgrest.loadbalancer.server.port=8080"
@@ -61,7 +56,6 @@ services:
 
 networks:
   web:
-    driver: overlay
     attachable: true
 
 volumes:
